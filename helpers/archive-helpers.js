@@ -1,5 +1,6 @@
 var fs = require('fs');
 var path = require('path');
+var http = require('http');
 var _ = require('underscore');
 
 /*
@@ -25,17 +26,56 @@ exports.initialize = function(pathsObj){
 // The following function names are provided to you to suggest how you might
 // modularize your code. Keep it clean!
 
-exports.readListOfUrls = function(){
+exports.readListOfUrls = function(callback){
+  var sites;
+  fs.readFile(this.paths.list, function (err, data) {
+      if(err) throw err;
+      sites = data.toString().split("\n");
+      callback(sites);
+  });
 };
 
-exports.isUrlInList = function(){
+exports.isUrlInList = function(url, callback){
+  var isInList;
+  this.readListOfUrls(function (list) {
+      isInList = (list.indexOf(url) !== -1);
+      callback(isInList);
+    });
 };
 
-exports.addUrlToList = function(){
+
+exports.addUrlToList = function(url){
+  fs.appendFile(this.paths.list, url + "\n" , function (err) {
+    if(err) throw err;
+  });
 };
 
-exports.isURLArchived = function(){
+exports.isUrlArchived = function(url, callback){
+  fs.readFile(this.paths.archivedSites + url, function (err, data) {
+    if(err) callback(false);
+    else callback(true);
+  });
 };
 
 exports.downloadUrls = function(){
+  var siteData = "";
+  var sitePath = "";
+  this.readListOfUrls(function (list) {
+    list = list.slice(0,-1);
+    _.each(list, function (val) {
+      sitePath = exports.paths.archivedSites +"/"+val;
+      http.get("http://"+val, function (res) {
+        res.on('data', function (data) {
+          siteData += data.toString();
+        });
+        res.on('end', function () {
+          fs.open(sitePath, "w",function (){
+              fs.writeFile(sitePath, siteData, function () {
+              });
+          });
+        });
+      }).on('error', function (err){console.log(err)})
+    });
+  });
+
 };

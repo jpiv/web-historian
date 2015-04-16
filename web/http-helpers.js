@@ -11,8 +11,22 @@ exports.headers = headers = {
 };
 
 exports.serveAssets = function(res, asset, callback) {
-  // Write some code here that helps serve up your static files!
-  // (Static files are things like html (yours or archived from others...), css, or anything that doesn't change often.)
+  fs.readFile(asset, function (err, data) {
+    if(err) exports.sendResponse(404,res);
+    else exports.sendResponse(200, res, data.toString());
+    if(callback) callback(data.toString());
+  });
+};
+exports.sendResponse = function (statusCode, res, body, type) {
+  type = type || "text/html";
+  body = body || null;
+  res.writeHead(statusCode, {"Content-type": type});
+  res.end(body);
+};
+
+exports.redirect = function (url, res) {
+  res.writeHead(302,{"Location":url});
+  res.end();
 };
 
 
